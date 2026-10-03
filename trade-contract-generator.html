@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trade Contract Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16233b;--paper:#ffffff;--bg:#eef1f5;--line:#cfd6e1;--seal:#0b6b5c;--warn:#a15c00;--warnbg:#fff4e0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Vazirmatn",Tahoma,"Segoe UI",system-ui,sans-serif;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding:16px;display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}}
+header{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+h1{font-size:1.35rem;margin:0;font-weight:800}
+.sub{margin:0;font-size:.9rem;opacity:.75}
+.langs{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.langs button{border:0;background:transparent;color:var(--ink);padding:6px 16px;font:inherit;cursor:pointer;font-weight:600}
+.langs button[aria-pressed=true]{background:var(--ink);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--seal);outline-offset:1px}
+form{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px}
+fieldset{border:0;border-bottom:1px solid var(--line);margin:0 0 12px;padding:0 0 10px}
+fieldset:last-of-type{border-bottom:0;margin-bottom:0}
+legend{font-weight:800;color:var(--seal);padding:0;margin-bottom:6px}
+label{display:block;font-size:.85rem;margin:8px 0 2px;font-weight:600}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;background:#fff;color:var(--ink)}
+textarea{min-height:60px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chk{display:flex;gap:8px;align-items:center;font-weight:400;margin:4px 0}
+.chk input{width:auto}
+.out{display:flex;flex-direction:column;gap:10px;min-width:0}
+.bar{display:flex;flex-wrap:wrap;gap:8px}
+.bar button{padding:8px 16px;border-radius:8px;border:1.5px solid var(--ink);background:var(--ink);color:#fff;font:inherit;font-weight:600;cursor:pointer}
+.bar button.alt{background:transparent;color:var(--ink)}
+.warn{background:var(--warnbg);border:1px solid #e8c27a;color:var(--warn);border-radius:8px;padding:8px 12px;font-size:.88rem}
+.warn ul{margin:4px 0 0;padding-inline-start:20px}
+.doc{background:var(--paper);border:1px solid var(--line);border-block-start:5px solid var(--seal);border-radius:4px;padding:28px 32px;font-size:.95rem}
+.doc + .doc{margin-top:14px}
+.doc h2{text-align:center;font-size:1.25rem;margin:0 0 4px}
+.doc .meta{text-align:center;font-size:.85rem;opacity:.75;margin-bottom:16px}
+.doc h3{font-size:1rem;margin:16px 0 2px;color:var(--seal)}
+.doc p{margin:0 0 6px}
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:36px}
+.sig div{border-top:1.5px solid var(--ink);padding-top:6px;font-size:.88rem}
+.note{font-size:.8rem;opacity:.75}
+@media print{
+ body{background:#fff}.wrap{display:block;padding:0}header,form,.bar,.warn,.note{display:none!important}
+ .doc{border:0;border-radius:0;padding:0;page-break-after:always}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1 id="ttl"></h1><p class="sub" id="sub"></p></div>
+  <div class="langs" role="group" aria-label="Language">
+    <button data-l="fa" type="button">فارسی</button>
+    <button data-l="en" type="button">English</button>
+    <button data-l="ar" type="button">العربية</button>
+  </div>
+</header>
+<form id="f" autocomplete="off" onsubmit="return false"></form>
+<section class="out">
+  <div class="bar">
+    <button type="button" id="bPrint"></button>
+    <button type="button" class="alt" id="bCopy"></button>
+  </div>
+  <div class="warn" id="warn" hidden></div>
+  <div id="preview"></div>
+  <p class="note" id="disc"></p>
+</section>
+</div>
+
+<script>
+/* ---------- helpers ---------- */
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = id => document.getElementById(id);
+const today = new Date().toISOString().slice(0,10);
+const S = {sName:'',sCountry:'',sAddr:'',bName:'',bCountry:'',bAddr:'',goods:'',spec:'',qty:'',unit:'mt',price:'',cur:'USD',
+  inc:'FOB',pol:'',pod:'',ship:'',pay:'lc',insp:'sgs',law:'',no:'',date:today,
+  docs:{inv:1,pl:1,bl:1,coo:1,hlt:0,hal:0,qlt:0},bi:false};
+let lang = 'fa';
+const INC = ['EXW','FCA','FAS','FOB','CFR','CIF','CPT','CIP','DAP','DPU','DDP'];
+const CUR = ['USD','EUR','AED','GBP','CNY','TRY','IRR'];
+
+/* ---------- translations ---------- */
+const L = {
+fa:{dir:'rtl',
+ ui:{ttl:'سازنده قرارداد صادرات و واردات',sub:'فرم را پر کنید؛ قرارداد آماده چاپ در سه زبان ساخته می‌شود.',
+  parties:'طرفین',seller:'فروشنده',buyer:'خریدار',sName:'نام شرکت فروشنده',sCountry:'کشور فروشنده',sAddr:'نشانی فروشنده',
+  bName:'نام شرکت خریدار',bCountry:'کشور خریدار',bAddr:'نشانی خریدار',
+  goodsG:'کالا و قیمت',goods:'نام کالا',spec:'مشخصات و کیفیت',qty:'مقدار',unit:'واحد',price:'قیمت هر واحد',cur:'ارز',
+  delG:'تحویل',inc:'شرط تحویل (اینکوترمز ۲۰۲۰)',pol:'بندر/محل بارگیری',pod:'بندر/محل مقصد',ship:'آخرین مهلت حمل',
+  termsG:'پرداخت و اسناد',pay:'روش پرداخت',insp:'بازرسی کیفیت و کمیت',docs:'اسناد الزامی',law:'شهر داوری',no:'شماره قرارداد',date:'تاریخ قرارداد',
+  bi:'نمایش همراه با نسخه انگلیسی',print:'چاپ / ذخیره PDF',copy:'کپی متن',copied:'کپی شد',
+  missing:'این موارد هنوز خالی است:',total:'مبلغ کل',
+  disc:'این ابزار قالب استاندارد می‌سازد و جای مشاوره حقوقی را نمی‌گیرد. پیش از امضا، متن را وکیل یا مشاور حقوقی تجارت بین‌الملل بررسی کند.'},
+ opt:{unit:{mt:'تن',kg:'کیلوگرم',pcs:'عدد',cnt:'کانتینر'},
+  pay:{lc:'اعتبار اسنادی بدون برگشت (L/C) دیداری',tt100:'پیش‌پرداخت ۱۰۰٪ (T/T)',tt3070:'۳۰٪ پیش‌پرداخت و ۷۰٪ علیه کپی اسناد حمل',cad:'پرداخت در برابر اسناد (CAD)'},
+  insp:{sgs:'بازرس مستقل (مثل SGS) در مبدأ',buyer:'نماینده خریدار در مبدأ',none:'بدون بازرسی'},
+  docs:{inv:'فاکتور تجاری',pl:'لیست بسته‌بندی',bl:'بارنامه',coo:'گواهی مبدأ',hlt:'گواهی بهداشتی',hal:'گواهی حلال',qlt:'گواهی کیفیت'}},
+ inc_sea:'شرط‌های FOB، CFR و CIF فقط برای حمل دریایی و آبراه داخلی است.',
+ build:(d,t)=>({title:'قرارداد خرید و فروش بین‌المللی',
+  meta:`شماره: ${d.no} | تاریخ: ${d.date}`,
+  parties:`این قرارداد میان «${d.sName}» به نشانی ${d.sAddr}، ${d.sCountry} (فروشنده) و «${d.bName}» به نشانی ${d.bAddr}، ${d.bCountry} (خریدار) بسته می‌شود.`,
+  art:[
+  ['ماده ۱ - موضوع قرارداد',`فروشنده ${d.qty} ${d.unitL} «${d.goods}» را با این مشخصات به خریدار می‌فروشد: ${d.spec}.`],
+  ['ماده ۲ - قیمت',`قیمت هر ${d.unitL}: ${d.price} ${d.cur}. مبلغ کل: ${d.total} ${d.cur}.`],
+  ['ماده ۳ - تحویل',`شرط تحویل ${d.inc} (اینکوترمز ۲۰۲۰)، بارگیری در ${d.pol}، مقصد ${d.pod}. حمل حداکثر تا تاریخ ${d.ship} انجام می‌شود.`],
+  ['ماده ۴ - پرداخت',`روش پرداخت: ${d.payL}.`],
+  ['ماده ۵ - بازرسی',`بازرسی کیفیت و کمیت: ${d.inspL}. گزارش بازرسی در مبدأ برای هر دو طرف معتبر است.`],
+  ['ماده ۶ - اسناد',`فروشنده این اسناد را ارائه می‌دهد: ${d.docsL}.`],
+  ['ماده ۷ - فورس ماژور',`حوادث غیرقابل پیش‌بینی و خارج از کنترل (جنگ، زلزله، سیل، تحریم یا ممنوعیت رسمی صادرات) طرف متأثر را از تعهد معاف می‌کند، مشروط به اطلاع کتبی ظرف ۷ روز.`],
+  ['ماده ۸ - قانون حاکم و داوری',`این قرارداد تابع کنوانسیون بیع بین‌المللی کالای وین (CISG) است. اختلافات از راه مذاکره و در صورت شکست، در ${d.law} و با داوری حل می‌شود.`]],
+  sell:'فروشنده',buy:'خریدار'})},
+en:{dir:'ltr',
+ ui:{ttl:'Export / Import Contract Builder',sub:'Fill in the form to get a print-ready contract in three languages.',
+  parties:'Parties',seller:'Seller',buyer:'Buyer',sName:'Seller company name',sCountry:'Seller country',sAddr:'Seller address',
+  bName:'Buyer company name',bCountry:'Buyer country',bAddr:'Buyer address',
+  goodsG:'Goods and price',goods:'Goods',spec:'Specification and quality',qty:'Quantity',unit:'Unit',price:'Unit price',cur:'Currency',
+  delG:'Delivery',inc:'Delivery term (Incoterms 2020)',pol:'Port / place of loading',pod:'Port / place of destination',ship:'Latest shipment date',
+  termsG:'Payment and documents',pay:'Payment method',insp:'Quality and quantity inspection',docs:'Required documents',law:'Arbitration city',no:'Contract no.',date:'Contract date',
+  bi:'Show with English copy',print:'Print / save PDF',copy:'Copy text',copied:'Copied',
+  missing:'Still empty:',total:'Total',
+  disc:'This tool produces a standard template and is not legal advice. Have an international trade lawyer review the text before signing.'},
+ opt:{unit:{mt:'metric tons',kg:'kg',pcs:'pieces',cnt:'containers'},
+  pay:{lc:'Irrevocable Letter of Credit (L/C) at sight',tt100:'100% advance payment (T/T)',tt3070:'30% advance, 70% against copies of shipping documents',cad:'Cash against documents (CAD)'},
+  insp:{sgs:'Independent inspector (e.g. SGS) at origin',buyer:"Buyer's representative at origin",none:'No inspection'},
+  docs:{inv:'Commercial invoice',pl:'Packing list',bl:'Bill of lading',coo:'Certificate of origin',hlt:'Health certificate',hal:'Halal certificate',qlt:'Quality certificate'}},
+ inc_sea:'FOB, CFR and CIF apply to sea and inland waterway transport only.',
+ build:(d,t)=>({title:'International Sales Contract',
+  meta:`No: ${d.no} | Date: ${d.date}`,
+  parties:`This contract is made between "${d.sName}", ${d.sAddr}, ${d.sCountry} (the Seller) and "${d.bName}", ${d.bAddr}, ${d.bCountry} (the Buyer).`,
+  art:[
+  ['Article 1 - Subject',`The Seller sells and the Buyer buys ${d.qty} ${d.unitL} of "${d.goods}" with the following specification: ${d.spec}.`],
+  ['Article 2 - Price',`Unit price per ${d.unitL}: ${d.price} ${d.cur}. Total contract value: ${d.total} ${d.cur}.`],
+  ['Article 3 - Delivery',`Delivery term ${d.inc} (Incoterms 2020), loading at ${d.pol}, destination ${d.pod}. Shipment shall be made no later than ${d.ship}.`],
+  ['Article 4 - Payment',`Payment method: ${d.payL}.`],
+  ['Article 5 - Inspection',`Quality and quantity inspection: ${d.inspL}. The inspection report issued at origin is binding on both parties.`],
+  ['Article 6 - Documents',`The Seller shall provide: ${d.docsL}.`],
+  ['Article 7 - Force majeure',`Unforeseeable events beyond a party's control (war, earthquake, flood, sanctions or an official export ban) release the affected party from liability, provided written notice is given within 7 days.`],
+  ['Article 8 - Governing law and arbitration',`This contract is governed by the UN Convention on Contracts for the International Sale of Goods (CISG). Disputes shall be settled by negotiation and, failing that, by arbitration in ${d.law}.`]],
+  sell:'Seller',buy:'Buyer'})},
+ar:{dir:'rtl',
+ ui:{ttl:'منشئ عقود التصدير والاستيراد',sub:'املأ النموذج لتحصل على عقد جاهز للطباعة بثلاث لغات.',
+  parties:'الأطراف',seller:'البائع',buyer:'المشتري',sName:'اسم شركة البائع',sCountry:'بلد البائع',sAddr:'عنوان البائع',
+  bName:'اسم شركة المشتري',bCountry:'بلد المشتري',bAddr:'عنوان المشتري',
+  goodsG:'البضاعة والسعر',goods:'البضاعة',spec:'المواصفات والجودة',qty:'الكمية',unit:'الوحدة',price:'سعر الوحدة',cur:'العملة',
+  delG:'التسليم',inc:'شرط التسليم (إنكوترمز 2020)',pol:'ميناء/مكان الشحن',pod:'ميناء/مكان الوصول',ship:'آخر موعد للشحن',
+  termsG:'الدفع والمستندات',pay:'طريقة الدفع',insp:'فحص الجودة والكمية',docs:'المستندات المطلوبة',law:'مدينة التحكيم',no:'رقم العقد',date:'تاريخ العقد',
+  bi:'عرض مع النسخة الإنجليزية',print:'طباعة / حفظ PDF',copy:'نسخ النص',copied:'تم النسخ',
+  missing:'حقول ما زالت فارغة:',total:'الإجمالي',
+  disc:'هذه الأداة تنشئ نموذجاً قياسياً ولا تغني عن الاستشارة القانونية. يجب أن يراجع محامٍ مختص بالتجارة الدولية النص قبل التوقيع.'},
+ opt:{unit:{mt:'طن متري',kg:'كيلوغرام',pcs:'قطعة',cnt:'حاوية'},
+  pay:{lc:'اعتماد مستندي غير قابل للإلغاء (L/C) عند الاطلاع',tt100:'دفعة مقدمة 100% (T/T)',tt3070:'30% مقدماً و70% مقابل صور مستندات الشحن',cad:'الدفع مقابل المستندات (CAD)'},
+  insp:{sgs:'مفتش مستقل (مثل SGS) في بلد المنشأ',buyer:'ممثل المشتري في بلد المنشأ',none:'بدون فحص'},
+  docs:{inv:'الفاتورة التجارية',pl:'قائمة التعبئة',bl:'بوليصة الشحن',coo:'شهادة المنشأ',hlt:'الشهادة الصحية',hal:'شهادة الحلال',qlt:'شهادة الجودة'}},
+ inc_sea:'شروط FOB وCFR وCIF تنطبق على النقل البحري والمائي الداخلي فقط.',
+ build:(d,t)=>({title:'عقد بيع دولي',
+  meta:`الرقم: ${d.no} | التاريخ: ${d.date}`,
+  parties:`أُبرم هذا العقد بين «${d.sName}»، ${d.sAddr}، ${d.sCountry} (البائع) و«${d.bName}»، ${d.bAddr}، ${d.bCountry} (المشتري).`,
+  art:[
+  ['المادة 1 - موضوع العقد',`يبيع البائع ويشتري المشتري ${d.qty} ${d.unitL} من «${d.goods}» بالمواصفات التالية: ${d.spec}.`],
+  ['المادة 2 - السعر',`سعر ${d.unitL} الواحد: ${d.price} ${d.cur}. القيمة الإجمالية للعقد: ${d.total} ${d.cur}.`],
+  ['المادة 3 - التسليم',`شرط التسليم ${d.inc} (إنكوترمز 2020)، الشحن من ${d.pol}، والوجهة ${d.pod}. يتم الشحن في موعد أقصاه ${d.ship}.`],
+  ['المادة 4 - الدفع',`طريقة الدفع: ${d.payL}.`],
+  ['المادة 5 - الفحص',`فحص الجودة والكمية: ${d.inspL}. يلزم تقرير الفحص الصادر في بلد المنشأ الطرفين.`],
+  ['المادة 6 - المستندات',`يقدم البائع المستندات التالية: ${d.docsL}.`],
+  ['المادة 7 - القوة القاهرة',`الأحداث غير المتوقعة الخارجة عن إرادة الطرفين (الحرب، الزلازل، الفيضانات، العقوبات أو الحظر الرسمي للتصدير) تعفي الطرف المتضرر من المسؤولية بشرط الإخطار الكتابي خلال 7 أيام.`],
+  ['المادة 8 - القانون الحاكم والتحكيم',`يخضع هذا العقد لاتفاقية الأمم المتحدة بشأن البيع الدولي للبضائع (CISG). تُحل النزاعات بالتفاوض، وعند تعذره بالتحكيم في ${d.law}.`]],
+  sell:'البائع',buy:'المشتري'})}
+};
+
+/* ---------- form ---------- */
+const FIELDS = [
+ ['parties',[['sName','text'],['sCountry','text'],['sAddr','text'],['bName','text'],['bCountry','text'],['bAddr','text']]],
+ ['goodsG',[['goods','text'],['spec','textarea'],['qty','number'],['unit','select:unit'],['price','number'],['cur','select:cur']]],
+ ['delG',[['inc','select:inc'],['pol','text'],['pod','text'],['ship','date']]],
+ ['termsG',[['pay','select:pay'],['insp','select:insp'],['docs','docs'],['law','text'],['no','text'],['date','date']]]
+];
+function buildForm(){
+  const u = L[lang].ui, o = L[lang].opt;
+  let h = '';
+  for(const [g,fs] of FIELDS){
+    h += `<fieldset><legend>${u[g]}</legend>`;
+    for(const [k,t] of fs){
+      if(t==='docs'){
+        h += `<label>${u.docs}</label>` + Object.keys(o.docs).map(x=>`<label class="chk"><input type="checkbox" data-doc="${x}" ${S.docs[x]?'checked':''}> ${o.docs[x]}</label>`).join('');
+        continue;
+      }
+      h += `<label for="${k}">${u[k]}</label>`;
+      if(t==='textarea') h += `<textarea id="${k}" data-k="${k}">${esc(S[k])}</textarea>`;
+      else if(t.startsWith('select')){
+        const kind = t.split(':')[1];
+        const opts = kind==='inc'?INC.map(x=>[x,x]):kind==='cur'?CUR.map(x=>[x,x]):Object.entries(o[kind]);
+        h += `<select id="${k}" data-k="${k}">` + opts.map(([v,n])=>`<option value="${v}" ${S[k]===v?'selected':''}>${n}</option>`).join('') + `</select>`;
+      } else h += `<input id="${k}" data-k="${k}" type="${t}" ${t==='number'?'min="0" step="any"':''} value="${esc(S[k])}">`;
+    }
+    h += `</fieldset>`;
+  }
+  h += `<label class="chk"><input type="checkbox" id="bi" ${S.bi?'checked':''}> ${u.bi}</label>`;
+  $('f').innerHTML = h;
+}
+
+/* ---------- contract ---------- */
+function data(lg){
+  const o = L[lg].opt, blank = '________';
+  const g = k => (String(S[k]).trim() || blank);
+  const total = (S.qty && S.price) ? (+S.qty * +S.price).toLocaleString('en-US',{maximumFractionDigits:2}) : blank;
+  return {sName:g('sName'),sCountry:g('sCountry'),sAddr:g('sAddr'),bName:g('bName'),bCountry:g('bCountry'),bAddr:g('bAddr'),
+    goods:g('goods'),spec:g('spec'),qty:g('qty'),unitL:o.unit[S.unit],price:g('price'),cur:S.cur,total,
+    inc:S.inc,pol:g('pol'),pod:g('pod'),ship:g('ship'),law:g('law'),no:g('no'),date:g('date'),
+    payL:o.pay[S.pay],inspL:o.insp[S.insp],
+    docsL:Object.keys(o.docs).filter(x=>S.docs[x]).map(x=>o.docs[x]).join(lg==='en'?', ':'، ') || blank};
+}
+function docHTML(lg){
+  const c = L[lg].build(data(lg));
+  return `<article class="doc" dir="${L[lg].dir}" lang="${lg}"><h2>${esc(c.title)}</h2><div class="meta">${esc(c.meta)}</div>
+  <p>${esc(c.parties)}</p>${c.art.map(([h,p])=>`<h3>${esc(h)}</h3><p>${esc(p)}</p>`).join('')}
+  <div class="sig"><div>${esc(c.sell)}: ${esc(data(lg).sName)}</div><div>${esc(c.buy)}: ${esc(data(lg).bName)}</div></div></article>`;
+}
+function render(){
+  const u = L[lang].ui;
+  document.documentElement.lang = lang; document.documentElement.dir = L[lang].dir;
+  $('ttl').textContent = u.ttl; $('sub').textContent = u.sub;
+  $('bPrint').textContent = u.print; $('bCopy').textContent = u.copy; $('disc').textContent = u.disc;
+  document.querySelectorAll('.langs button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.l===lang));
+  $('preview').innerHTML = docHTML(lang) + (S.bi && lang!=='en' ? docHTML('en') : '');
+  const need = ['sName','bName','goods','qty','price','pol','pod','ship','law'].filter(k=>!String(S[k]).trim()).map(k=>u[k]);
+  const notes = [];
+  if(need.length) notes.push(`<div>${u.missing}</div><ul>${need.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>`);
+  if(['FOB','CFR','CIF'].includes(S.inc)) notes.push(`<div>${L[lang].inc_sea}</div>`);
+  $('warn').hidden = !notes.length; $('warn').innerHTML = notes.join('');
+}
+
+/* ---------- events ---------- */
+$('f').addEventListener('input', e=>{
+  const t = e.target;
+  if(t.dataset.k) S[t.dataset.k] = t.value;
+  else if(t.dataset.doc) S.docs[t.dataset.doc] = t.checked ? 1 : 0;
+  else if(t.id==='bi') S.bi = t.checked;
+  render();
+});
+document.querySelector('.langs').addEventListener('click', e=>{
+  if(e.target.dataset.l){ lang = e.target.dataset.l; buildForm(); render(); }
+});
+$('bPrint').onclick = () => window.print();
+$('bCopy').onclick = async () => {
+  try{ await navigator.clipboard.writeText($('preview').innerText); const b=$('bCopy'), t=b.textContent; b.textContent=L[lang].ui.copied; setTimeout(()=>b.textContent=t,1500); }catch(_){}
+};
+buildForm(); render();
+</script>
+</body>
+</html>
