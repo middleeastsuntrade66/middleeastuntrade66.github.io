@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Products | Middle East Sun Trade Broker</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#10304a;--sun:#f2b134;--seal:#0b6b5c;--ink:#16233b;--line:#d5dce6;--bg:#f3f5f8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Vazirmatn",Tahoma,system-ui,sans-serif;line-height:1.7}
+:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+nav{position:sticky;top:0;z-index:20;background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 16px}
+nav a.home{color:#fff;font-weight:800;text-decoration:none}
+.langs{display:flex;border:1.5px solid #fff;border-radius:8px;overflow:hidden}
+.langs button{border:0;background:none;color:#fff;padding:3px 10px;font:inherit;font-size:.85rem;cursor:pointer;font-weight:600}
+.langs button[aria-pressed=true]{background:var(--sun);color:var(--navy)}
+header{background:var(--navy);color:#fff;padding:36px 20px 44px;position:relative;overflow:hidden}
+header::after{content:"";position:absolute;inset-inline-end:-90px;bottom:-130px;width:280px;height:280px;border-radius:50%;background:var(--sun);opacity:.9}
+header div{position:relative;z-index:1;max-width:900px;margin:0 auto}
+h1{margin:0 0 6px;font-size:clamp(1.5rem,4.5vw,2.2rem);font-weight:800}
+header p{margin:0;max-width:560px}
+main{max-width:900px;margin:0 auto;padding:8px 16px 90px}
+section{margin-top:28px}
+h2{font-size:1.25rem;color:var(--navy);margin:0 0 4px;font-weight:800}
+.desc{margin:0 0 12px;font-size:.9rem;opacity:.8}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.item{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;justify-content:space-between}
+.item b{font-weight:600;font-size:.98rem}
+.item a{align-self:flex-start;background:var(--seal);color:#fff;text-decoration:none;font-size:.82rem;font-weight:600;padding:5px 12px;border-radius:20px}
+.item a:hover{filter:brightness(1.12)}
+.more{margin-top:32px;background:#fff;border:1px solid var(--line);border-inline-start:5px solid var(--sun);border-radius:6px;padding:14px 16px}
+.more a{display:inline-block;margin-top:6px;background:var(--sun);color:var(--navy);text-decoration:none;font-weight:800;padding:8px 20px;border-radius:30px}
+.small{font-size:.82rem;opacity:.75;margin-top:16px}
+</style>
+</head>
+<body>
+<nav>
+  <a class="home" href="./" id="home"></a>
+  <div class="langs" role="group" aria-label="Language">
+    <button data-l="fa" type="button">فا</button><button data-l="en" type="button">EN</button><button data-l="ar" type="button">AR</button>
+  </div>
+</nav>
+<header><div><h1 id="ttl"></h1><p id="sub"></p></div></header>
+<main id="main"></main>
+
+<script>
+const UI = {
+ fa:{dir:'rtl',home:'← صفحه اصلی',ttl:'محصولات',sub:'محصولات قابل تأمین ما. مشخصات، کیفیت و قیمت بر اساس درخواست شما اعلام می‌شود.',btn:'درخواست استعلام',
+  moreT:'محصول شما در لیست نیست؟',moreD:'نام کالا را بنویسید؛ بسیاری از کالاها را بر اساس درخواست پیگیری می‌کنیم.',moreB:'ارسال درخواست',
+  note:'همه معاملات تابع قوانین و الزامات حقوقی و تجاری مربوطه است. قیمت‌ها ثابت نیستند و با درخواست شما اعلام می‌شوند.'},
+ en:{dir:'ltr',home:'← Home',ttl:'Products',sub:'The products we can source. Specifications, quality and price are quoted on request.',btn:'Request quote',
+  moreT:'Not on the list?',moreD:'Tell us the product name. We follow up many other goods on request.',moreB:'Send request',
+  note:'All transactions are subject to the applicable legal and commercial requirements. Prices are not fixed and are quoted on request.'},
+ ar:{dir:'rtl',home:'← الصفحة الرئيسية',ttl:'المنتجات',sub:'المنتجات التي يمكننا توريدها. تُحدد المواصفات والجودة والسعر بحسب طلبك.',btn:'طلب عرض سعر',
+  moreT:'منتجك غير موجود في القائمة؟',moreD:'اكتب اسم السلعة؛ نتابع كثيراً من السلع الأخرى حسب الطلب.',moreB:'إرسال الطلب',
+  note:'تخضع جميع المعاملات للمتطلبات القانونية والتجارية المعمول بها. الأسعار غير ثابتة وتُحدد عند الطلب.'}
+};
+/* [فارسی, English, العربية] */
+const CATS = [
+ {t:['نفت، گاز و پتروشیمی','Oil, Gas and Petrochemicals','النفط والغاز والبتروكيماويات'],
+  d:['فرآورده‌های نفتی و پتروشیمی','Petroleum products and petrochemicals','المشتقات النفطية والبتروكيماويات'],
+  p:[['نفت خام','Crude oil','النفط الخام'],['گازوئیل','Diesel (gasoil)','الديزل (الغاز أويل)'],['بنزین','Gasoline','البنزين'],['سوخت جت','Jet fuel','وقود الطائرات'],
+     ['نفت کوره (مازوت)','Fuel oil (mazut)','زيت الوقود (المازوت)'],['گاز مایع (LPG)','LPG','الغاز المسال (LPG)'],['قیر','Bitumen','البيتومين'],['روغن پایه','Base oil','زيت الأساس'],
+     ['نفتا','Naphtha','النافتا'],['گوگرد','Sulfur','الكبريت'],['متانول','Methanol','الميثانول'],['اوره','Urea','اليوريا'],
+     ['پلی‌اتیلن (PE)','Polyethylene (PE)','البولي إيثيلين (PE)'],['پلی‌پروپیلن (PP)','Polypropylene (PP)','البولي بروبيلين (PP)'],['پی‌وی‌سی (PVC)','PVC','بي في سي (PVC)'],
+     ['اتیلن گلیکول','Ethylene glycol','إيثيلين غليكول'],['آروماتیک‌ها (بنزن، تولوئن، زایلین)','Aromatics (benzene, toluene, xylene)','العطريات (بنزين، تولوين، زايلين)']]},
+ {t:['کشاورزی و مواد غذایی','Agriculture and Food','الزراعة والمواد الغذائية'],
+  d:['محصولات کشاورزی، غلات و مواد غذایی','Agricultural products, grains and food','المنتجات الزراعية والحبوب والأغذية'],
+  p:[['گندم','Wheat','القمح'],['برنج','Rice','الأرز'],['ذرت','Corn','الذرة'],['شکر','Sugar','السكر'],['کنجاله سویا','Soybean meal','كسب فول الصويا'],
+     ['روغن آفتابگردان','Sunflower oil','زيت عباد الشمس'],['روغن پالم','Palm oil','زيت النخيل'],['خرما','Dates','التمور'],['پسته','Pistachios','الفستق'],
+     ['زعفران','Saffron','الزعفران'],['چای','Tea','الشاي'],['میوه و صیفی تازه','Fresh fruit and vegetables','الفواكه والخضروات الطازجة'],
+     ['گوشت و مرغ منجمد (حلال)','Frozen meat and poultry (halal)','اللحوم والدواجن المجمدة (حلال)'],['ادویه','Spices','التوابل']]},
+ {t:['سایر کالاها','Other Goods','سلع أخرى'],
+  d:['فلزات، صنعتی و کالاهای مصرفی','Metals, industrial and consumer goods','المعادن والصناعية والاستهلاكية'],
+  p:[['فولاد، شمش و میلگرد','Steel, billets and rebar','الصلب والسبائك وحديد التسليح'],['شمش آلومینیوم','Aluminum ingots','سبائك الألمنيوم'],['مس','Copper','النحاس'],
+     ['ماشین‌آلات و قطعات','Machinery and spare parts','الآلات وقطع الغيار'],['تجهیزات صنعتی','Industrial equipment','المعدات الصناعية'],
+     ['مصالح ساختمانی','Building materials','مواد البناء'],['کالاهای مصرفی','Consumer goods','السلع الاستهلاكية']]}
+];
+const $ = id => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+let lang = ['fa','en','ar'].includes(q.get('lang')) ? q.get('lang') : 'fa';
+const li = () => ['fa','en','ar'].indexOf(lang);
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const link = name => 'buyer-inquiry.html?lang=' + lang + '&product=' + encodeURIComponent(name);
+
+function render(){
+  const u = UI[lang], i = li();
+  document.documentElement.lang = lang; document.documentElement.dir = u.dir;
+  $('home').textContent = u.home; $('ttl').textContent = u.ttl; $('sub').textContent = u.sub;
+  $('main').innerHTML = CATS.map(c => `<section><h2>${esc(c.t[i])}</h2><p class="desc">${esc(c.d[i])}</p><div class="grid">` +
+      c.p.map(p => `<div class="item"><b>${esc(p[i])}</b><a href="${link(p[i])}">${u.btn}</a></div>`).join('') + `</div></section>`).join('') +
+    `<div class="more"><b>${u.moreT}</b><br>${u.moreD}<br><a href="buyer-inquiry.html?lang=${lang}">${u.moreB}</a></div><p class="small">${u.note}</p>`;
+  document.querySelectorAll('.langs button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.l===lang));
+}
+document.querySelector('.langs').addEventListener('click', e=>{ if(e.target.dataset.l){ lang=e.target.dataset.l; render(); } });
+render();
+</script>
+</body>
+</html>
