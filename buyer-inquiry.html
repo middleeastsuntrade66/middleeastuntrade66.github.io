@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buyer Inquiry</title>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16233b;--seal:#0b6b5c;--line:#cfd6e1;--bg:#eef1f5}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Vazirmatn",Tahoma,system-ui,sans-serif;line-height:1.7}
+main{max-width:560px;margin:0 auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h1{font-size:1.3rem;margin:8px 0 2px;font-weight:800}
+p.sub{margin:0 0 12px;opacity:.8;font-size:.92rem}
+.langs{display:flex;border:1.5px solid var(--ink);border-radius:8px;overflow:hidden}
+.langs button{border:0;background:none;color:var(--ink);padding:5px 12px;font:inherit;cursor:pointer;font-weight:600}
+.langs button[aria-pressed=true]{background:var(--ink);color:#fff}
+form{background:#fff;border:1px solid var(--line);border-block-start:5px solid var(--seal);border-radius:6px;padding:16px}
+label{display:block;font-size:.85rem;font-weight:600;margin:10px 0 2px}
+input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:6px;font:inherit;color:var(--ink);background:#fff}
+textarea{min-height:70px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:420px){.row{grid-template-columns:1fr}}
+.go{margin-top:16px;width:100%;padding:12px;border:0;border-radius:8px;background:var(--seal);color:#fff;font:inherit;font-weight:800;font-size:1rem;cursor:pointer}
+.go:disabled{opacity:.6}
+.wa{display:block;text-align:center;margin-top:10px;padding:10px;border:1.5px solid var(--seal);border-radius:8px;color:var(--seal);font-weight:600;text-decoration:none}
+.msg{margin-top:12px;padding:10px 12px;border-radius:8px;font-size:.92rem}
+.ok{background:#e3f6ef;color:#0b6b5c}.err{background:#fde8e8;color:#9b1c1c}
+.hp{position:absolute;left:-9999px}
+:focus-visible{outline:3px solid var(--seal);outline-offset:1px}
+</style>
+</head>
+<body>
+<main>
+<div class="top"><div><h1 id="ttl"></h1></div>
+ <div class="langs" role="group" aria-label="Language">
+  <button data-l="fa" type="button">فارسی</button><button data-l="en" type="button">English</button><button data-l="ar" type="button">العربية</button>
+ </div></div>
+<p class="sub" id="sub"></p>
+
+<form id="f">
+ <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off">
+ <label for="product" id="lProduct"></label><input id="product" name="product" required>
+ <div class="row">
+  <div><label for="qty" id="lQty"></label><input id="qty" name="quantity"></div>
+  <div><label for="dest" id="lDest"></label><input id="dest" name="destination"></div>
+ </div>
+ <label for="urg" id="lUrg"></label><select id="urg" name="urgency"></select>
+ <label for="name" id="lName"></label><input id="name" name="name" required>
+ <label for="co" id="lCo"></label><input id="co" name="company">
+ <div class="row">
+  <div><label for="country" id="lCountry"></label><input id="country" name="country" required></div>
+  <div><label for="phone" id="lPhone"></label><input id="phone" name="phone" type="tel" required></div>
+ </div>
+ <label for="email" id="lEmail"></label><input id="email" name="email" type="email" required>
+ <label for="note" id="lNote"></label><textarea id="note" name="message"></textarea>
+ <button class="go" id="send" type="submit"></button>
+ <a class="wa" id="wa" target="_blank" rel="noopener"></a>
+ <div id="msg" role="status"></div>
+</form>
+</main>
+
+<script>
+/* ===== تنظیمات - فقط این دو مورد را تغییر دهید ===== */
+const ACCESS_KEY = "10bbeb5b-341d-4ae2-804f-b40b82586333";   // کلید رایگان از web3forms.com
+const WHATSAPP   = "";                               // شماره با کد کشور بدون + و صفر، مثل 971501234567
+/* ================================================= */
+
+const T = {
+fa:{dir:'rtl',ttl:'درخواست خرید',sub:'محصول مورد نظرتان را بنویسید تا در سریع‌ترین زمان قیمت و تأمین را اعلام کنیم.',
+ product:'کدام محصول را می‌خواهید؟',qty:'مقدار تقریبی',dest:'کشور / بندر مقصد',urg:'فوریت',
+ urgs:['فوری (تا یک هفته)','تا یک ماه','فقط استعلام قیمت'],name:'نام شما',co:'نام شرکت',country:'کشور',phone:'تلفن / واتساپ',email:'ایمیل',note:'توضیحات (مشخصات، کیفیت، ...)',
+ send:'ارسال درخواست',sending:'در حال ارسال...',wa:'گفتگو در واتساپ',ok:'درخواست شما ثبت شد. به‌زودی با شما تماس می‌گیریم.',err:'ارسال نشد. دوباره تلاش کنید یا از واتساپ استفاده کنید.',cfg:'کلید فرم هنوز تنظیم نشده است.'},
+en:{dir:'ltr',ttl:'Buying Request',sub:'Tell us which product you need and we will reply with price and supply as fast as possible.',
+ product:'Which product do you need?',qty:'Approximate quantity',dest:'Destination country / port',urg:'Urgency',
+ urgs:['Urgent (within a week)','Within a month','Price inquiry only'],name:'Your name',co:'Company',country:'Country',phone:'Phone / WhatsApp',email:'Email',note:'Notes (specs, quality, ...)',
+ send:'Send request',sending:'Sending...',wa:'Chat on WhatsApp',ok:'Your request is received. We will contact you shortly.',err:'Could not send. Try again or use WhatsApp.',cfg:'The form key is not configured yet.'},
+ar:{dir:'rtl',ttl:'طلب شراء',sub:'اكتب المنتج الذي تريده وسنرد عليك بالسعر والتوريد في أسرع وقت.',
+ product:'ما المنتج الذي تريده؟',qty:'الكمية التقريبية',dest:'بلد / ميناء الوصول',urg:'الاستعجال',
+ urgs:['عاجل (خلال أسبوع)','خلال شهر','استفسار عن السعر فقط'],name:'اسمك',co:'الشركة',country:'البلد',phone:'الهاتف / واتساب',email:'البريد الإلكتروني',note:'ملاحظات (المواصفات، الجودة...)',
+ send:'إرسال الطلب',sending:'جارٍ الإرسال...',wa:'محادثة واتساب',ok:'تم استلام طلبك. سنتواصل معك قريباً.',err:'تعذر الإرسال. حاول مرة أخرى أو استخدم واتساب.',cfg:'مفتاح النموذج لم يُضبط بعد.'}
+};
+const $ = id => document.getElementById(id);
+let lang = (navigator.language||'fa').startsWith('ar') ? 'ar' : (navigator.language||'').startsWith('en') ? 'en' : 'fa';
+
+function apply(){
+  const t = T[lang];
+  document.documentElement.lang = lang; document.documentElement.dir = t.dir;
+  $('ttl').textContent = t.ttl; $('sub').textContent = t.sub;
+  const map = {lProduct:'product',lQty:'qty',lDest:'dest',lUrg:'urg',lName:'name',lCo:'co',lCountry:'country',lPhone:'phone',lEmail:'email',lNote:'note'};
+  for(const k in map) $(k).textContent = t[map[k]];
+  const cur = $('urg').selectedIndex;
+  $('urg').innerHTML = t.urgs.map((u,i)=>`<option value="${u}">${u}</option>`).join('');
+  $('urg').selectedIndex = Math.max(cur,0);
+  $('send').textContent = t.send;
+  $('wa').textContent = t.wa;
+  $('wa').style.display = WHATSAPP ? 'block' : 'none';
+  if(WHATSAPP) $('wa').href = 'https://wa.me/' + WHATSAPP + '?text=' + encodeURIComponent(t.ttl);
+  document.querySelectorAll('.langs button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.l===lang));
+}
+document.querySelector('.langs').addEventListener('click', e=>{ if(e.target.dataset.l){ lang=e.target.dataset.l; apply(); } });
+
+$('f').addEventListener('submit', async e=>{
+  e.preventDefault();
+  const t = T[lang], box = $('msg'), btn = $('send');
+  box.className = ''; box.textContent = '';
+  if(ACCESS_KEY.startsWith('PUT_')){ box.className='msg err'; box.textContent=t.cfg; return; }
+  btn.disabled = true; btn.textContent = t.sending;
+  const d = Object.fromEntries(new FormData($('f')).entries());
+  d.access_key = ACCESS_KEY;
+  d.subject = 'New buying request: ' + (d.product||'');
+  d.from_name = 'Website inquiry';
+  d.page_language = lang;
+  d.page_url = location.href;
+  d.submitted_at = new Date().toISOString();
+  try{
+    const r = await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(d)});
+    const j = await r.json();
+    if(j.success){ box.className='msg ok'; box.textContent=t.ok; $('f').reset(); }
+    else throw new Error();
+  }catch(_){ box.className='msg err'; box.textContent=t.err; }
+  btn.disabled = false; btn.textContent = t.send;
+});
+apply();
+</script>
+</body>
+</html>
